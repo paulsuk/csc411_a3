@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import string
+import tensorflow as tf
 import pdb
 
 class Review(object):
@@ -242,12 +243,34 @@ class Classifier(object):
 		x will be n x k
 		y will be n x 1
 		'''
-		for class_name in self.classes:
-			y = 0
-			x = y + x
 
-	def dfdx(self, x, y):
-		pass
+		x = np.array([])
+		x_t = np.array([])
+		y = np.array([])
+		y_t = np.array([])
+
+		for class_name in self.classes:
+			label = 0
+			label += (class_name == "positive")
+
+			reviewClass = self.classes[class_name]
+			for review in reviewClass._reviews:
+				x_temp = self._build_x_from_review(review)
+				if x.size == 0:
+					x = x_temp
+					y = np.array([label])
+				else:
+					x = np.vstack((x, x_temp))
+					y = np.append((y, [label]))
+			for review in reviewClass._reviews_test:
+				x_temp = self._build_x_from_review(review)
+				if x_t.size == 0:
+					x_t = x_temp
+					y_t = np.array([label])
+				else:
+					x_t = np.vstack((x_t, x_temp))
+					y_t = np.append((y_t, [label]))
+		return x, y, x_t, y_t
 
 	def NaiveBayes(self, m):
 		total_train = 0
@@ -277,12 +300,20 @@ class Classifier(object):
 		return total_train, train_corr, total_test, test_corr
 
 	def LogisticRegression(self, review):
+		'''
+		Will use tensorflow to do a logistic regression
+		'''
 		pos_review_class = self.classes["positive"]
 		neg_review_class = self.classes["negative"]
 		
 		all_reviews = pos_review_class._train_set + neg_review_class._train_set
 
 		self._vocabulary = all_reviews.unique_words()
+
+		x, y, x_t, y_t = self.get_data()
+
+		# TODO: Do tensorflow network here to do logistic regression
+		# https://github.com/aymericdamien/TensorFlow-Examples/blob/master/examples/2_BasicModels/logistic_regression.py
 
 
 	def part2(self):
