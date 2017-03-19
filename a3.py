@@ -261,7 +261,7 @@ class Classifier(object):
 					y = np.array([label])
 				else:
 					x = np.vstack((x, x_temp))
-					y = np.append((y, [label]))
+					y = np.append(y, [label])
 			for review in reviewClass._reviews_test:
 				x_temp = self._build_x_from_review(review)
 				if x_t.size == 0:
@@ -269,7 +269,7 @@ class Classifier(object):
 					y_t = np.array([label])
 				else:
 					x_t = np.vstack((x_t, x_temp))
-					y_t = np.append((y_t, [label]))
+					y_t = np.append(y_t, [label])
 		return x, y, x_t, y_t
 
 	def NaiveBayes(self, m):
@@ -299,7 +299,7 @@ class Classifier(object):
 					test_corr += 1
 		return total_train, train_corr, total_test, test_corr
 
-	def LogisticRegression(self, review):
+	def LogisticRegression(self):
 		'''
 		Will use tensorflow to do a logistic regression
 		'''
@@ -309,7 +309,7 @@ class Classifier(object):
 		all_reviews = pos_review_class._train_set + neg_review_class._train_set
 
 		self._vocabulary = all_reviews.unique_words()
-
+		print("getting data")
 		x, y, x_t, y_t = self.get_data()
 
 		# TODO: Do tensorflow network here to do logistic regression
@@ -393,4 +393,5 @@ if __name__ == '__main__':
 	classifier = Classifier(classes)
 	print("initialized classes")
 	#classifier.part2()
-	classifier.part3(n=10)
+	#classifier.part3(n=10)
+	classifier.LogisticRegression()
