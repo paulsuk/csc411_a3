@@ -1,8 +1,9 @@
 import a3
 import matplotlib.pyplot as plt
 
-def part4(classifier, num_iterations=250, alpha=0.001):
-	train_perf, test_perf = classifier.LogisticRegression(num_iterations=num_iterations,
+def part4(classifier, num_iterations=250, alpha=0.00005):
+	print("perfomring number 4")
+	train_perf, test_perf, _ = classifier.LogisticRegression(num_iterations=num_iterations,
 		alpha=alpha, part4=True)
 
 	plt.figure()

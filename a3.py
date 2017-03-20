@@ -416,7 +416,7 @@ class Classifier(object):
 					test_corr += 1
 		return total_train, train_corr, total_test, test_corr
 
-	def LogisticRegression(self, num_iterations=250, alpha=0.0001, part4=True):
+	def LogisticRegression(self, num_iterations=250, alpha=0.00001, part4=True):
 		'''
 		Will use tensorflow to do a logistic regression
 		'''
@@ -476,20 +476,7 @@ class Classifier(object):
 				print("Train: {}".format(sess.run(accuracy, feed_dict={_x: x, _y: y})))
 				print("Test: {}".format(sess.run(accuracy, feed_dict={_x: x_t, _y: y_t})))
 
-		return train_acc, test_acc
-
-	def part4(self, num_iterations=250, alpha=0.001):
-		train_perf, test_perf = self.LogisticRegression(num_iterations=num_iterations,
-			alpha=alpha, part4=True)
-
-		plt.figure()
-		plt.title("Part 4: Using LogisticRegression for NLP")
-		plt.ylabel("Performance")
-		plt.xlabel("Iterations")
-		plt.plot(train_perf, label="Training Accuracy")
-		plt.plot(test_perf, label="Testing Accuracy")
-		plt.legend(loc=4)
-		plt.savefig("Part4_logreg_perf.png")
+		return train_acc, test_acc, w.eval(sess)
 
 	def part7(self):
 		pos_review_class = self.classes["positive"]
@@ -510,5 +497,4 @@ if __name__ == '__main__':
 
 	classifier = Classifier(classes)
 
-	classifier.part4()
 	classifier.part7()

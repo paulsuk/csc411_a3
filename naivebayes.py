@@ -62,7 +62,7 @@ def part3(classifier, n=10):
 	prints the words that have the highest correlation with each class
 	'''
 	print("running part 3")
-	m = 0.00005
+	m = 0.000005
 	pos_class = classifier.classes["positive"]
 	neg_class = classifier.classes["negative"]
 
