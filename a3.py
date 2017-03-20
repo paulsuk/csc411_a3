@@ -45,7 +45,7 @@ class Review(object):
 				res._word_count[word] = other._word_count[word]
 		res._num_words = self._num_words + other._num_words
 		res._all_words = self._all_words + other._all_words
-		res._vocab_size = len(res._word_count)/len(res._all_words)
+		res._vocab_size = self._vocab_size + other._vocab_size
 
 		return res
 
@@ -334,7 +334,12 @@ class Classifier(object):
 
 	def get_data_embeddings(self):
 		'''
+<<<<<<< Updated upstream
 		Uses _build_x_from_embeddings to build x, y, vectors
+=======
+		Uses _build_x_from_review to build x, y, vectors
+		- takes the entire training set from all classes to build the input vectors
+>>>>>>> Stashed changes
 		x will be n x k
 		y will be n x 1
 		'''
@@ -345,8 +350,10 @@ class Classifier(object):
 		y_t = np.array([])
 
 		for class_name in self.classes:
-			label = 0
-			label += (class_name == "positive")
+			if class_name == "positive":
+				label = np.array([1, 0])
+			else: 
+				label = np.array([0, 1])
 
 			reviewClass = self.classes[class_name]
 			for review in reviewClass._reviews:
@@ -356,7 +363,7 @@ class Classifier(object):
 					y = np.array([label])
 				else:
 					x = np.vstack((x, x_temp))
-					y = np.append(y, [label])
+					y = np.vstack((y, label))
 			for review in reviewClass._reviews_test:
 				x_temp = self._build_x_from_embeddings(review)
 				if x_t.size == 0:
@@ -364,7 +371,7 @@ class Classifier(object):
 					y_t = np.array([label])
 				else:
 					x_t = np.vstack((x_t, x_temp))
-					y_t = np.append(y_t, [label])
+					y_t = np.vstack((y_t, label))
 		return x, y, x_t, y_t
 
 	def get_data(self):
@@ -494,94 +501,15 @@ class Classifier(object):
 
 		return train_acc, test_acc
 
-	def part2(self):
-		'''
-		Compares the performance of the Naive Bayes Classifier with respect to changing m
-		'''
-		print("running part 2")
-		m = 0.00000
-
-		ms = []
-		test_perf = []
-		train_perf = []
-
-		for i in range(25):
-			ms.append(m)
-			total_train, train_corr, total_test, test_corr = self.NaiveBayes(m)
-			train_perf.append(train_corr/total_train)
-			test_perf.append(test_corr/total_test)
-
-			m += 0.00002
-
-			print("Naive Bayes Classifier Performance for m = {}: ".format(m))
-			print("Training: {} of {}, {}%, Testing: {} of {}, {}%".format(train_corr, total_train, 
-					(100*train_corr/total_train), test_corr, total_test, (100*test_corr/total_test)))
-		
-		plt.figure()
-		plt.plot(ms, train_perf, 'r', label="Training performance")
-		plt.plot(ms, test_perf, 'b', label="Testing performance")
-		plt.axis([0, ms[-1], 0, 1])
-		plt.xlabel("m")
-		plt.ylabel("Performance")
-		plt.title("Part 2: Naive Bayes Performance on m")
-		plt.legend()
-		plt.savefig("part2_m_graph.png")
-
-	def part3(self, n=10):
-		'''
-		prints the words that have the highest correlation with each class
-		'''
-		print("running part 3")
-		m = 0.0005
-		pos_class = self.classes["positive"]
-		neg_class = self.classes["negative"]
-
-		pos_words = pos_class.words_in_class()
-		neg_words = neg_class.words_in_class()
-
-		pos_in_pos = np.log(pos_class.probabilities_of_words(pos_words, m))
-		pos_in_neg = np.log(neg_class.probabilities_of_words(pos_words, m))
-
-		neg_in_pos = np.log(pos_class.probabilities_of_words(neg_words, m))
-		neg_in_neg = np.log(neg_class.probabilities_of_words(neg_words, m))
-
-		pos_diff = pos_in_pos - pos_in_neg
-		neg_diff = neg_in_neg - neg_in_pos
-
-		ix_pos = np.argsort(pos_diff)[ :-n -1: -1]
-		ix_neg = np.argsort(neg_diff)[ :-n -1: -1]
-
-
-		likely_pos = [pos_words[i] for i in ix_pos]
-		likely_neg = [neg_words[i] for i in ix_neg]
-
-		print("The {} most likely words for positive reviews are: {}".format(n, likely_pos))
-		print("The {} most likely words for negative reviews are: {}".format(n, likely_neg))
-
-	def part4(self, num_iterations=250, alpha=0.001):
-		train_perf, test_perf = self.LogisticRegression(num_iterations=num_iterations,
-			alpha=alpha, part4=True)
-
-		plt.figure()
-		plt.title("Part 4: Using LogisticRegression for NLP")
-		plt.ylabel("Performance")
-		plt.xlabel("Iterations")
-		plt.plot(train_perf, label="Training Accuracy")
-		plt.plot(test_perf, label="Testing Accuracy")
-		plt.legend(loc=4)
-		plt.savefig("Part4_logreg_perf.png")
-
 if __name__ == '__main__':
 
 	classes = {}
 	dir_base = "txt_sentoken/"
 
-	classes["positive"] = dir_base + "pos/"a3.
+	classes["positive"] = dir_base + "pos/"
 	classes["negative"] = dir_base + "neg/"
 
 	classifier = a3.Classifier(classes)
 	print("initialized classes")
 	#classifier.part2()
 	#classifier.part3(n=10)
-
-	#classifier.part4()
