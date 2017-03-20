@@ -45,7 +45,7 @@ class Review(object):
 				res._word_count[word] = other._word_count[word]
 		res._num_words = self._num_words + other._num_words
 		res._all_words = self._all_words + other._all_words
-		res._vocab_size = self._vocab_size + other._vocab_size
+		res._vocab_size = len(res._word_count)/len(res._all_words)
 
 		return res
 
@@ -119,7 +119,6 @@ class Review(object):
 		context = []
 		for i in range((self.total_num_words())-1):
 			context.append((words[i], words[i+1]))
-			context.append((words[i+1], words[i]))
 		return context
 
 	def make_context_embeddings(self):
@@ -133,18 +132,35 @@ class Review(object):
 	def isInContext(self, word):
 		''' Returns true if word is in context ''' 
 		context = self.make_context()
-		for x,_ in context:
-			if (x, word) in context:
+		for x in context:
+			if x[1] == word:
 				return True
 		return False
 
 	def isInContext_embeddings(self, word):
 		''' Returns true if word is in context'''
 		context = self.make_context_embeddings()
-		for x,_ in context:
-			if (x, word) in context:
+		for x in context:
+			if x[1] == word:
 				return True
 		return False
+
+	def isInContext_embeddings_count(self, word):
+		''' Returns list of 10 words closest to the embedding of 'word' '''
+		context = self.make_context()#_embeddings()
+		print ("Made context")
+		close_word = {}
+		for x in context:
+			if x[1] == word: 
+				if x[0] not in close_word.keys():
+					close_word[x[0]] = 1
+				else:
+					close_word[x[0]] += 1
+		sorted_close = sorted(close_word.items(), key=lambda x: x[1], reverse=True)
+		print (sorted_close)
+		closest = [x[0] for x in sorted_close[:10]]
+		return closest
+
 
 class ReviewClass(object):
 	'''
@@ -310,7 +326,7 @@ class Classifier(object):
 	def _build_x_from_embeddings(self, review):
 		x = []
 		for word in self._vocabulary:
-			if isInContext_embeddings():
+			if review.isInContext_embeddings(word):
 				x.append(1)
 			else:
 				x.append(0)
@@ -334,7 +350,7 @@ class Classifier(object):
 
 			reviewClass = self.classes[class_name]
 			for review in reviewClass._reviews:
-				x_temp = self._build_x_from_word2vec(review)
+				x_temp = self._build_x_from_embeddings(review)
 				if x.size == 0:
 					x = x_temp
 					y = np.array([label])
@@ -342,7 +358,7 @@ class Classifier(object):
 					x = np.vstack((x, x_temp))
 					y = np.append(y, [label])
 			for review in reviewClass._reviews_test:
-				x_temp = self._build_x_from_world2vec(review)
+				x_temp = self._build_x_from_embeddings(review)
 				if x_t.size == 0:
 					x_t = x_temp
 					y_t = np.array([label])
@@ -416,7 +432,7 @@ class Classifier(object):
 					test_corr += 1
 		return total_train, train_corr, total_test, test_corr
 
-	def LogisticRegression(self, num_iterations=250, alpha=0.00001, part4=True):
+	def LogisticRegression(self, num_iterations=250, alpha=0.0001, part4=True):
 		'''
 		Will use tensorflow to do a logistic regression
 		'''
@@ -476,15 +492,114 @@ class Classifier(object):
 				print("Train: {}".format(sess.run(accuracy, feed_dict={_x: x, _y: y})))
 				print("Test: {}".format(sess.run(accuracy, feed_dict={_x: x_t, _y: y_t})))
 
-		return train_acc, test_acc, w.eval(sess)
+		return train_acc, test_acc
 
-	def part7(self):
+	def part2(self):
+		'''
+		Compares the performance of the Naive Bayes Classifier with respect to changing m
+		'''
+		print("running part 2")
+		m = 0.00000
+
+		ms = []
+		test_perf = []
+		train_perf = []
+
+		for i in range(25):
+			ms.append(m)
+			total_train, train_corr, total_test, test_corr = self.NaiveBayes(m)
+			train_perf.append(train_corr/total_train)
+			test_perf.append(test_corr/total_test)
+
+			m += 0.00002
+
+			print("Naive Bayes Classifier Performance for m = {}: ".format(m))
+			print("Training: {} of {}, {}%, Testing: {} of {}, {}%".format(train_corr, total_train, 
+					(100*train_corr/total_train), test_corr, total_test, (100*test_corr/total_test)))
+		
+		plt.figure()
+		plt.plot(ms, train_perf, 'r', label="Training performance")
+		plt.plot(ms, test_perf, 'b', label="Testing performance")
+		plt.axis([0, ms[-1], 0, 1])
+		plt.xlabel("m")
+		plt.ylabel("Performance")
+		plt.title("Part 2: Naive Bayes Performance on m")
+		plt.legend()
+		plt.savefig("part2_m_graph.png")
+
+	def part3(self, n=10):
+		'''
+		prints the words that have the highest correlation with each class
+		'''
+		print("running part 3")
+		m = 0.0005
+		pos_class = self.classes["positive"]
+		neg_class = self.classes["negative"]
+
+		pos_words = pos_class.words_in_class()
+		neg_words = neg_class.words_in_class()
+
+		pos_in_pos = np.log(pos_class.probabilities_of_words(pos_words, m))
+		pos_in_neg = np.log(neg_class.probabilities_of_words(pos_words, m))
+
+		neg_in_pos = np.log(pos_class.probabilities_of_words(neg_words, m))
+		neg_in_neg = np.log(neg_class.probabilities_of_words(neg_words, m))
+
+		pos_diff = pos_in_pos - pos_in_neg
+		neg_diff = neg_in_neg - neg_in_pos
+
+		ix_pos = np.argsort(pos_diff)[ :-n -1: -1]
+		ix_neg = np.argsort(neg_diff)[ :-n -1: -1]
+
+
+		likely_pos = [pos_words[i] for i in ix_pos]
+		likely_neg = [neg_words[i] for i in ix_neg]
+
+		print("The {} most likely words for positive reviews are: {}".format(n, likely_pos))
+		print("The {} most likely words for negative reviews are: {}".format(n, likely_neg))
+
+	def part4(self, num_iterations=250, alpha=0.001):
+		train_perf, test_perf = self.LogisticRegression(num_iterations=num_iterations,
+			alpha=alpha, part4=True)
+
+		plt.figure()
+		plt.title("Part 4: Using LogisticRegression for NLP")
+		plt.ylabel("Performance")
+		plt.xlabel("Iterations")
+		plt.plot(train_perf, label="Training Accuracy")
+		plt.plot(test_perf, label="Testing Accuracy")
+		plt.legend(loc=4)
+		plt.savefig("Part4_logreg_perf.png")
+
+	def part7(self, num_iterations=250, alpha=0.001):
+		train_perf, test_perf = self.LogisticRegression(num_iterations=num_iterations,
+			alpha=alpha, part4=False)
+
+		plt.figure()
+		plt.title("Part 7: Using LogisticRegression for word2vec")
+		plt.ylabel("Performance")
+		plt.xlabel("Iterations")
+		plt.plot(train_perf, label="Training Accuracy")
+		plt.plot(test_perf, label="Testing Accuracy")
+		plt.legend(loc=4)
+		plt.savefig("Part7_logreg_perf.png")
+
+	def part8(self):
 		pos_review_class = self.classes["positive"]
 		neg_review_class = self.classes["negative"]
 		all_reviews = pos_review_class._train_set + neg_review_class._train_set
 
-		print("getting data")
-		x, y, x_t, y_t = self.get_data_embeddings()
+		words = ['story', 'good', 'oscar', 'plotholes']
+
+		closest_story = all_reviews.isInContext_embeddings_count(words[0])
+		closest_good = all_reviews.isInContext_embeddings_count(words[1])
+		closest_oscar = all_reviews.isInContext_embeddings_count(words[2])
+		closest_plotholes = all_reviews.isInContext_embeddings_count(words[3])
+
+		print ("The 10 closest words with highest frequency to {} are {}".format(words[0], closest_story))
+		print ("The 10 closest words with highest frequency to {} are {}".format(words[1], closest_good))
+		print ("The 10 closest words with highest frequency to {} are {}".format(words[2], closest_oscar))
+		print ("The 10 closest words with highest frequency to {} are {}".format(words[3], closest_plotholes))
 
 
 if __name__ == '__main__':
@@ -492,9 +607,14 @@ if __name__ == '__main__':
 	classes = {}
 	dir_base = "txt_sentoken/"
 
-	classes["positive"] = dir_base + "pos/"
+	classes["positive"] = dir_base + "pos/"a3.
 	classes["negative"] = dir_base + "neg/"
 
-	classifier = Classifier(classes)
+	classifier = a3.Classifier(classes)
+	print("initialized classes")
+	#classifier.part2()
+	#classifier.part3(n=10)
 
+	#classifier.part4()
 	classifier.part7()
+	#classifier.part8()
