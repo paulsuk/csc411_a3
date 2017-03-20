@@ -8,12 +8,21 @@ import pdb
 
 class Review(object):
 	'''
-	based off of http://www.python-course.eu/text_classification_python.php
-	Representation of a review, storing the total number of words, as well as the frequency of each word
+	-Representation of a review, storing the total number of words, 
+	as well as the frequency of each word, vocabulary size
+
+	- This class supports being able to add to other reviews
 	'''
 
 	def __init__(self):
-		# word_count is the frequency of words in the review
+		'''
+		_num_words is the total number of words
+		_word_count is a dict with key being words, and count is the normalized occurance of word
+		_all_words is the review word by word
+		_vocab_size is the number of unique words 
+		Note that the num words will be normalized to 1 for a single review,
+		and will represent the total number of reviews combined to make the object
+		'''
 		self._num_words = 0
 		self._word_count = {}
 		self._all_words = []
@@ -22,6 +31,9 @@ class Review(object):
 	def __add__(self, other):
 		'''
 		Overriding the '+' operator when joining two Reviews
+		Combines the word_count dictionary
+		Sums the num words, all_words
+		Updates vocab size
 		'''
 		res = Review()
 		for word in self._word_count:
@@ -33,13 +45,18 @@ class Review(object):
 				res._word_count[word] = other._word_count[word]
 		res._num_words = self._num_words + other._num_words
 		res._all_words = self._all_words + other._all_words
-		res._vocab_size = self._vocab_size + other._vocab_size
+		res._vocab_size = len(res._word_count)/len(res._all_words)
 
 		return res
 
 	def read_file(self, filename):
 		'''
-		Read file and update the words of the review
+		Reads textfile representing a review, preprocesses the words
+			- removes punctuation
+			- seperates word by word
+			- makes all lowercase
+		Updates corresponding values in class
+		Normalizes vocab sizes, counts, by the total length of review
 		'''
 		translator = str.maketrans("", "", string.punctuation)
 		file = open(filename).read().lower().replace("\n", "").translate(translator)
@@ -53,7 +70,11 @@ class Review(object):
 		self._vocab_size = len(self._word_count)/len(words)
 		
 	def _add_word(self, word):
-		'''Add word to review'''
+		'''
+		Add word to review, is called by read_file
+		Note that while the count is incremented by 1, it is normalized 
+		at the end of read_file(). Don't call this method directly
+		'''
 		self._num_words += 1
 		if word in self._word_count:
 			self._word_count[word] += 1
@@ -61,14 +82,21 @@ class Review(object):
 			self._word_count[word] = 1
 
 	def total_num_words(self):
+		'''
+		Number of words (non-unique)
+		'''
 		return self._num_words
 
 	def vocabulary_size(self):
-		''' Return the number of unique words in Review'''
+		'''
+		Return the number of unique words in Review
+		'''
 		return self._vocab_size
 
 	def words(self):
-		''' Returns the list of words contained in object including duplicates'''
+		'''
+		Returns the list of words contained in object including duplicates
+		'''
 		return self._all_words
 
 	def unique_words(self):
@@ -77,12 +105,10 @@ class Review(object):
 		'''
 		return list(self._word_count.keys())
 
-	def words_and_count(self):
-		''' Gets the word frequency dictionary and returns it'''
-		return self._word_count
-
 	def wordCount(self, word):
-		''' Returns the frequency of a word in the review '''
+		'''
+		Returns the frequency of a word in the review
+		'''
 		if word in self._word_count:
 			return self._word_count[word]
 		else:
@@ -122,9 +148,16 @@ class Review(object):
 
 class ReviewClass(object):
 	'''
-	A class of reviews
+	A collection of Review objects that are in the same class
+	- is initialized from a directory, contains the training, testing, validation set
+	- also has _train_set() which is a Review() object which is all the reviews
+		in the training set grouped into 1 Review object for some simplicity
+	- Used in the Bayesian section to get the probability of a word given being in this class
 	'''
 	def __init__(self, className):
+		'''
+		Initialize class name, train/test/val sets, and the _train_set object
+		'''
 		self.class_name = className
 
 		self._reviews = []
@@ -138,7 +171,7 @@ class ReviewClass(object):
 		with each file being a Review object, using read_file
 
 		also creates a review that grouped all of the reviews into a single Review class, stores it 
-		in self._all_reviews
+		in self._test_set
 		'''
 		np.random.seed(100)
 		filenames = np.array(os.listdir(directory))
@@ -160,21 +193,15 @@ class ReviewClass(object):
 		self._train_set = train_set
 
 	def num_of_reviews(self):
+		'''
+		Returns the size of the training set 
+		'''
 		return len(self._reviews)
 
-	def num_words_in_class(self):
-		'''
-		returns the total number of words in class
-		'''
-		reviews = self._reviews
-		count = 0
-
-		for review in reviews:
-			count += review.total_num_words()
-
-		return count
-
 	def words_in_class(self):
+		'''
+		Returns the unique words in the training set
+		'''
 		return self._train_set.unique_words()
 
 	def class_vocab_size(self):
@@ -197,6 +224,9 @@ class ReviewClass(object):
 			return float((count + m*k)/(tot+k))
 
 	def probabilities_of_words(self, words, m):
+		'''
+		Returns an array of probabilities using the probability_of_word method
+		'''
 		probabilities = []
 
 		for word in words:
@@ -207,11 +237,14 @@ class ReviewClass(object):
 class Classifier(object):
 	'''
 	The classifier object, holds ReviewClass objects and will do a classificaiton
+	Holds a dictionary of class names mapped to their corresponding ReviewClass 
+	- Also has the vocabulary of the entire training set
 	'''
 	def __init__(self, classes):
 		'''
 		classes is a dictioanry where the keys are classes, and their value is the directory of the 
 		location of the files of that class
+		vocabulary is the combined vocabulary of the entire dataset
 		'''
 		self.classes = {}
 		for class_name in classes:
@@ -222,6 +255,7 @@ class Classifier(object):
 	def _add_class(self, class_name, directory):
 		'''
 		Creates a ReviewClass and adds it to self.classes
+		Reads all of the files in the given directory and adds them to ReviewClass
 		'''
 		if class_name in self.classes:
 			print("classes must have unique names")
@@ -235,7 +269,7 @@ class Classifier(object):
 	def _argMax_bayes(self, words, m):
 		'''
 		- returns the classname that maximizes the naive bayesian probability
-		- assumes the probability of being in any class is the same
+		- assumes the probability of being in any class is the same (1/2)
 		'''
 		argmax_p = -math.inf
 		argmax_class = None
@@ -259,6 +293,11 @@ class Classifier(object):
 		return argmax_class 
 
 	def _build_x_from_review(self, review):
+		'''
+		Used for part 4, builds the feature vector for a review
+		- each vector is k dimensional, where k is the size of total vocabulary
+		- if the kth word is in review ever, the value is 1, otherwise it is 0
+		'''
 		x = []
 		for word in self._vocabulary:
 			count = review.wordCount(word)
@@ -315,6 +354,7 @@ class Classifier(object):
 	def get_data(self):
 		'''
 		Uses _build_x_from_review to build x, y, vectors
+		- takes the entire training set from all classes to build the input vectors
 		x will be n x k
 		y will be n x 1
 		'''
@@ -325,8 +365,10 @@ class Classifier(object):
 		y_t = np.array([])
 
 		for class_name in self.classes:
-			label = 0
-			label += (class_name == "positive")
+			if class_name == "positive":
+				label = np.array([1, 0])
+			else: 
+				label = np.array([0, 1])
 
 			reviewClass = self.classes[class_name]
 			for review in reviewClass._reviews:
@@ -336,7 +378,7 @@ class Classifier(object):
 					y = np.array([label])
 				else:
 					x = np.vstack((x, x_temp))
-					y = np.append(y, [label])
+					y = np.vstack((y, label))
 			for review in reviewClass._reviews_test:
 				x_temp = self._build_x_from_review(review)
 				if x_t.size == 0:
@@ -344,7 +386,7 @@ class Classifier(object):
 					y_t = np.array([label])
 				else:
 					x_t = np.vstack((x_t, x_temp))
-					y_t = np.append(y_t, [label])
+					y_t = np.vstack((y_t, label))
 		return x, y, x_t, y_t
 
 	def NaiveBayes(self, m):
@@ -374,7 +416,7 @@ class Classifier(object):
 					test_corr += 1
 		return total_train, train_corr, total_test, test_corr
 
-	def LogisticRegression(self):
+	def LogisticRegression(self, num_iterations=250, alpha=0.0001):
 		'''
 		Will use tensorflow to do a logistic regression
 		'''
@@ -387,9 +429,50 @@ class Classifier(object):
 		print("getting data")
 		x, y, x_t, y_t = self.get_data()
 
-		# TODO: Do tensorflow network here to do logistic regression
-		# https://github.com/aymericdamien/TensorFlow-Examples/blob/master/examples/2_BasicModels/logistic_regression.py
+		print("starting tensorflow")
+		# parameters
+		k = x.shape[1]
+		m = y.shape[1]
 
+		# placeholders
+		_x = tf.placeholder(tf.float32, [None, k]) # k dimensional vector
+		_y = tf.placeholder(tf.float32, [None, m]) # labels
+
+		# model weights
+		w = tf.Variable(tf.random_normal([k, m], stddev=0.01))
+		b = tf.Variable(tf.random_normal([m], stddev=0.01))
+
+		# softmax
+		pred = tf.nn.softmax(tf.matmul(_x, w) + b)
+
+		# cost
+		cost = tf.reduce_mean(-tf.reduce_sum(_y*tf.log(pred)))
+
+		# optimizer
+		optimizer = tf.train.GradientDescentOptimizer(alpha).minimize(cost)
+
+		init = tf.initialize_all_variables()
+		sess = tf.Session()
+		sess.run(init)
+
+		#accuracy
+		correct_pred = tf.equal(tf.argmax(_y, 1), tf.argmax(pred, 1))
+		accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+
+		train_acc = []
+		test_acc = []
+
+		for i in range(num_iterations):
+			sess.run(optimizer, feed_dict={_x: x, _y: y})
+			train_acc.append(sess.run(accuracy, feed_dict={_x: x, _y: y}))
+			test_acc.append(sess.run(accuracy, feed_dict={_x: x_t, _y: y_t}))
+
+			if i % 10 == 0:
+				print("iteration " + str(i))
+				print("Train: {}".format(sess.run(accuracy, feed_dict={_x: x, _y: y})))
+				print("Test: {}".format(sess.run(accuracy, feed_dict={_x: x_t, _y: y_t})))
+
+		return train_acc, test_acc
 
 	def part2(self):
 		'''
@@ -455,6 +538,18 @@ class Classifier(object):
 		print("The {} most likely words for positive reviews are: {}".format(n, likely_pos))
 		print("The {} most likely words for negative reviews are: {}".format(n, likely_neg))
 
+	def part4(self, num_iterations=250, alpha=0.001):
+		train_perf, test_perf = self.LogisticRegression(num_iterations=num_iterations,
+			alpha=alpha)
+
+		plt.figure()
+		plt.title("Part 4: Using LogisticRegression for NLP")
+		plt.ylabel("Performance")
+		plt.xlabel("Iterations")
+		plt.plot(train_perf, label="Training Accuracy")
+		plt.plot(test_perf, label="Testing Accuracy")
+		plt.legend(loc=4)
+		plt.savefig("Part4_logreg_perf.png")
 
 	def part7(self):
 		pos_review_class = self.classes["positive"]
@@ -477,10 +572,6 @@ if __name__ == '__main__':
 	print("initialized classes")
 	#classifier.part2()
 	#classifier.part3(n=10)
-	#classifier.LogisticRegression()
+
+	classifier.part4()
 	classifier.part7()
-
-
-
-
-
