@@ -416,7 +416,7 @@ class Classifier(object):
 					test_corr += 1
 		return total_train, train_corr, total_test, test_corr
 
-	def LogisticRegression(self, num_iterations=250, alpha=0.0001):
+	def LogisticRegression(self, num_iterations=250, alpha=0.0001, part4=True):
 		'''
 		Will use tensorflow to do a logistic regression
 		'''
@@ -427,7 +427,11 @@ class Classifier(object):
 
 		self._vocabulary = all_reviews.unique_words()
 		print("getting data")
-		x, y, x_t, y_t = self.get_data()
+
+		if part4:
+			x, y, x_t, y_t = self.get_data()
+		else:
+			x, y, x_t, y_t = self.get_data_embeddings()
 
 		print("starting tensorflow")
 		# parameters
@@ -540,7 +544,7 @@ class Classifier(object):
 
 	def part4(self, num_iterations=250, alpha=0.001):
 		train_perf, test_perf = self.LogisticRegression(num_iterations=num_iterations,
-			alpha=alpha)
+			alpha=alpha, part4=True)
 
 		plt.figure()
 		plt.title("Part 4: Using LogisticRegression for NLP")
