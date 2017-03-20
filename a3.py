@@ -45,7 +45,7 @@ class Review(object):
 				res._word_count[word] = other._word_count[word]
 		res._num_words = self._num_words + other._num_words
 		res._all_words = self._all_words + other._all_words
-		res._vocab_size = len(res._word_count)/len(res._all_words)
+		res._vocab_size = self._vocab_size + other._vocab_size
 
 		return res
 
@@ -478,70 +478,6 @@ class Classifier(object):
 
 		return train_acc, test_acc
 
-	def part2(self):
-		'''
-		Compares the performance of the Naive Bayes Classifier with respect to changing m
-		'''
-		print("running part 2")
-		m = 0.00000
-
-		ms = []
-		test_perf = []
-		train_perf = []
-
-		for i in range(25):
-			ms.append(m)
-			total_train, train_corr, total_test, test_corr = self.NaiveBayes(m)
-			train_perf.append(train_corr/total_train)
-			test_perf.append(test_corr/total_test)
-
-			m += 0.00002
-
-			print("Naive Bayes Classifier Performance for m = {}: ".format(m))
-			print("Training: {} of {}, {}%, Testing: {} of {}, {}%".format(train_corr, total_train, 
-					(100*train_corr/total_train), test_corr, total_test, (100*test_corr/total_test)))
-		
-		plt.figure()
-		plt.plot(ms, train_perf, 'r', label="Training performance")
-		plt.plot(ms, test_perf, 'b', label="Testing performance")
-		plt.axis([0, ms[-1], 0, 1])
-		plt.xlabel("m")
-		plt.ylabel("Performance")
-		plt.title("Part 2: Naive Bayes Performance on m")
-		plt.legend()
-		plt.savefig("part2_m_graph.png")
-
-	def part3(self, n=10):
-		'''
-		prints the words that have the highest correlation with each class
-		'''
-		print("running part 3")
-		m = 0.0005
-		pos_class = self.classes["positive"]
-		neg_class = self.classes["negative"]
-
-		pos_words = pos_class.words_in_class()
-		neg_words = neg_class.words_in_class()
-
-		pos_in_pos = np.log(pos_class.probabilities_of_words(pos_words, m))
-		pos_in_neg = np.log(neg_class.probabilities_of_words(pos_words, m))
-
-		neg_in_pos = np.log(pos_class.probabilities_of_words(neg_words, m))
-		neg_in_neg = np.log(neg_class.probabilities_of_words(neg_words, m))
-
-		pos_diff = pos_in_pos - pos_in_neg
-		neg_diff = neg_in_neg - neg_in_pos
-
-		ix_pos = np.argsort(pos_diff)[ :-n -1: -1]
-		ix_neg = np.argsort(neg_diff)[ :-n -1: -1]
-
-
-		likely_pos = [pos_words[i] for i in ix_pos]
-		likely_neg = [neg_words[i] for i in ix_neg]
-
-		print("The {} most likely words for positive reviews are: {}".format(n, likely_pos))
-		print("The {} most likely words for negative reviews are: {}".format(n, likely_neg))
-
 	def part4(self, num_iterations=250, alpha=0.001):
 		train_perf, test_perf = self.LogisticRegression(num_iterations=num_iterations,
 			alpha=alpha, part4=True)
@@ -573,9 +509,6 @@ if __name__ == '__main__':
 	classes["negative"] = dir_base + "neg/"
 
 	classifier = Classifier(classes)
-	print("initialized classes")
-	#classifier.part2()
-	#classifier.part3(n=10)
 
 	classifier.part4()
 	classifier.part7()
