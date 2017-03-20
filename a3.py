@@ -87,7 +87,38 @@ class Review(object):
 			return self._word_count[word]
 		else:
 			return 0
-		
+
+	def make_context(self):
+		words = self.words()
+		context = []
+		for i in range((self.total_num_words())-1):
+			context.append((words[i], words[i+1]))
+			context.append((words[i+1], words[i]))
+		return context
+
+	def make_context_embeddings(self):
+		word_indices = np.load("embeddings.npz")["word2ind"].flatten()[0]
+		context = []
+		for i in range(len(word_indices)-1):
+			context.append((word_indices[i], word_indices[i+1]))
+			context.append((word_indices[i+1], word_indices[i]))
+		return context
+	
+	def isInContext(self, word):
+		''' Returns true if word is in context ''' 
+		context = self.make_context()
+		for x,_ in context:
+			if (x, word) in context:
+				return True
+		return False
+
+	def isInContext_embeddings(self, word):
+		''' Returns true if word is in context'''
+		context = self.make_context_embeddings()
+		for x,_ in context:
+			if (x, word) in context:
+				return True
+		return False
 
 class ReviewClass(object):
 	'''
@@ -237,6 +268,50 @@ class Classifier(object):
 				x.append(0)
 		return np.array(x)
 
+	def _build_x_from_embeddings(self, review):
+		x = []
+		for word in self._vocabulary:
+			if isInContext_embeddings():
+				x.append(1)
+			else:
+				x.append(0)
+		return np.array(x)
+
+	def get_data_embeddings(self):
+		'''
+		Uses _build_x_from_embeddings to build x, y, vectors
+		x will be n x k
+		y will be n x 1
+		'''
+
+		x = np.array([])
+		x_t = np.array([])
+		y = np.array([])
+		y_t = np.array([])
+
+		for class_name in self.classes:
+			label = 0
+			label += (class_name == "positive")
+
+			reviewClass = self.classes[class_name]
+			for review in reviewClass._reviews:
+				x_temp = self._build_x_from_word2vec(review)
+				if x.size == 0:
+					x = x_temp
+					y = np.array([label])
+				else:
+					x = np.vstack((x, x_temp))
+					y = np.append(y, [label])
+			for review in reviewClass._reviews_test:
+				x_temp = self._build_x_from_world2vec(review)
+				if x_t.size == 0:
+					x_t = x_temp
+					y_t = np.array([label])
+				else:
+					x_t = np.vstack((x_t, x_temp))
+					y_t = np.append(y_t, [label])
+		return x, y, x_t, y_t
+
 	def get_data(self):
 		'''
 		Uses _build_x_from_review to build x, y, vectors
@@ -381,6 +456,14 @@ class Classifier(object):
 		print("The {} most likely words for negative reviews are: {}".format(n, likely_neg))
 
 
+	def part7(self):
+		pos_review_class = self.classes["positive"]
+		neg_review_class = self.classes["negative"]
+		all_reviews = pos_review_class._train_set + neg_review_class._train_set
+
+		print("getting data")
+		x, y, x_t, y_t = self.get_data_embeddings()
+
 
 if __name__ == '__main__':
 
@@ -394,4 +477,10 @@ if __name__ == '__main__':
 	print("initialized classes")
 	#classifier.part2()
 	#classifier.part3(n=10)
-	classifier.LogisticRegression()
+	#classifier.LogisticRegression()
+	classifier.part7()
+
+
+
+
+
