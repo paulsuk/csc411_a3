@@ -334,12 +334,10 @@ class Classifier(object):
 
 	def get_data_embeddings(self):
 		'''
-<<<<<<< Updated upstream
-		Uses _build_x_from_embeddings to build x, y, vectors
-=======
+
 		Uses _build_x_from_review to build x, y, vectors
 		- takes the entire training set from all classes to build the input vectors
->>>>>>> Stashed changes
+
 		x will be n x k
 		y will be n x 1
 		'''
@@ -460,6 +458,7 @@ class Classifier(object):
 		# parameters
 		k = x.shape[1]
 		m = y.shape[1]
+		beta = 0.1/(x.shape[0])
 
 		# placeholders
 		_x = tf.placeholder(tf.float32, [None, k]) # k dimensional vector
@@ -474,6 +473,8 @@ class Classifier(object):
 
 		# cost
 		cost = tf.reduce_mean(-tf.reduce_sum(_y*tf.log(pred)))
+		regularization = tf.nn.l2_loss(w)
+		cost = tf.reduce_mean(cost + beta * regularization)
 
 		# optimizer
 		optimizer = tf.train.GradientDescentOptimizer(alpha).minimize(cost)
@@ -499,7 +500,7 @@ class Classifier(object):
 				print("Train: {}".format(sess.run(accuracy, feed_dict={_x: x, _y: y})))
 				print("Test: {}".format(sess.run(accuracy, feed_dict={_x: x_t, _y: y_t})))
 
-		return train_acc, test_acc
+		return train_acc, test_acc, w.eval(sess)[:,0]
 
 if __name__ == '__main__':
 

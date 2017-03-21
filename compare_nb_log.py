@@ -1,34 +1,13 @@
 import a3
 import matplotlib.pyplot as plt
 import numpy as np
+import tabulate
 import pdb
 
 def part6(classifier):
 	print("performing part 6")
-	# NB part
-	n = 100
-	m = 0.000005
-	pos_class = classifier.classes["positive"]
-	neg_class = classifier.classes["negative"]
-
-	pos_words = pos_class.words_in_class()
-	neg_words = neg_class.words_in_class()
-
-	pos_in_pos = np.log(pos_class.probabilities_of_words(pos_words, m))
-	pos_in_neg = np.log(neg_class.probabilities_of_words(pos_words, m))
-
-	neg_in_pos = np.log(pos_class.probabilities_of_words(neg_words, m))
-	neg_in_neg = np.log(neg_class.probabilities_of_words(neg_words, m))
-
-	pos_diff = pos_in_pos - pos_in_neg
-	neg_diff = neg_in_neg - neg_in_pos
-
-	ix_pos = np.argsort(pos_diff)[ :-n -1: -1]
-	ix_neg = np.argsort(neg_diff)[ :-n -1: -1]
-
-	theta_nb = [pos_diff[i] for i in ix_pos]
-
 	# Get thetas for logistic:
+	n = 100
 	num_iterations = 250
 	alpha = 0.00003
 
@@ -37,9 +16,28 @@ def part6(classifier):
 
 	ix = np.argsort(thetas)[ :-n -1: -1]
 
-	theta_log = [thetas[i] for i in ix]
+	theta_log = np.array([(classifier._vocabulary[i], thetas[i]) for i in ix])
+
+	# NB part
+	m = 0.00005
+	pos_class = classifier.classes["positive"]
+	neg_class = classifier.classes["negative"]
+
+	words = classifier._vocabulary
+
+	pos_prob = np.array(pos_class.probabilities_of_words(words, m))
+	neg_prob = np.array(neg_class.probabilities_of_words(words, m))
+
+	ratio = pos_prob/neg_prob
+
+	ix_nb = np.argsort(ratio)[ :-n -1: -1]
+
+	theta_nb = np.array([(words[i], ratio[i]) for i in ix_nb])
+
 	pdb.set_trace()
-	print("yo")
+	top_theta = np.append(theta_nb, theta_log, axis=1)
+	print(tabulate.tabulate(top_theta, headers=["nb_word", "nb_theta", "log_word", "log_theta"], 
+		numalign="center", tablefmt="psql"))
 
 if __name__ == '__main__':
 	classes = {}

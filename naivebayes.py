@@ -57,12 +57,20 @@ def part2(classifier):
 	plt.legend()
 	plt.savefig("part2_m_graph.png")
 
+	m = 0.00005
+	total_train, train_corr, total_test, test_corr = classifier.NaiveBayes(m)
+
+	print("Naive Bayes Classifier Performance for m = {}: ".format(m))
+	print("Training: {} of {}, {}%, Testing: {} of {}, {}%".format(train_corr, total_train, 
+				(100*train_corr/total_train), test_corr, total_test, (100*test_corr/total_test)))
+
+
 def part3(classifier, n=10):
 	'''
 	prints the words that have the highest correlation with each class
 	'''
 	print("running part 3")
-	m = 0.000005
+	m = 0.00005
 	pos_class = classifier.classes["positive"]
 	neg_class = classifier.classes["negative"]
 
