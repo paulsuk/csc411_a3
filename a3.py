@@ -128,6 +128,16 @@ class Review(object):
 			context.append((word_indices[i], word_indices[i+1]))
 			context.append((word_indices[i+1], word_indices[i]))
 		return context
+
+	def make_context_embeddings_sample(self):
+		word_indices = np.load("embeddings.npz")["word2ind"].flatten()[0]
+		context = []
+		for i in range(2):
+			context.append((word_indices[i], word_indices[i+1]))
+			context.append((word_indices[i+1], word_indices[i]))
+
+		print ("Made context! {}".format(context))
+		return context
 	
 	def isInContext(self, word):
 		''' Returns true if word is in context ''' 
@@ -139,9 +149,10 @@ class Review(object):
 
 	def isInContext_embeddings(self, word):
 		''' Returns true if word is in context'''
-		context = self.make_context_embeddings()
+		context = self.make_context_embeddings_sample()
 		for x in context:
 			if x[1] == word:
+				print ("is in context!")
 				return True
 		return False
 
@@ -330,6 +341,7 @@ class Classifier(object):
 				x.append(1)
 			else:
 				x.append(0)
+		print ("DONE BUILDING X")
 		return np.array(x)
 
 	def get_data_embeddings(self):
@@ -354,7 +366,7 @@ class Classifier(object):
 				label = np.array([0, 1])
 
 			reviewClass = self.classes[class_name]
-			for review in reviewClass._reviews:
+			for review in reviewClass._reviews[:1]:
 				x_temp = self._build_x_from_embeddings(review)
 				if x.size == 0:
 					x = x_temp
@@ -362,7 +374,7 @@ class Classifier(object):
 				else:
 					x = np.vstack((x, x_temp))
 					y = np.vstack((y, label))
-			for review in reviewClass._reviews_test:
+			for review in reviewClass._reviews_test[:1]:
 				x_temp = self._build_x_from_embeddings(review)
 				if x_t.size == 0:
 					x_t = x_temp
